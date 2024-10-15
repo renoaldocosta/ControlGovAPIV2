@@ -14,10 +14,10 @@ from pymongo import ReturnDocument
 
 
 app = FastAPI(
-    title="Empenho Course API",
+    title="API - ControlGov - Câmara Municipal de Pinhão/SE",
     summary="A sample application showing how to use FastAPI to add a ReST API to a MongoDB collection.",
 )
-client = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URL"])
+client: motor.motor_asyncio.AsyncIOMotorClient = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URL"])
 db = client.get_database("CMP")
 empenho_collection = db.get_collection("EMPENHOS_DETALHADOS_STAGE")
 
@@ -164,7 +164,7 @@ class EmpenhoCollection(BaseModel):
     response_model=EmpenhoModel,
     status_code=status.HTTP_201_CREATED,
     response_model_by_alias=False,
-    tags=["Empenho"],
+    tags=["Empenhos"],
 )
 async def create_empenho(empenho: EmpenhoModel = Body(...)):
     """
@@ -173,7 +173,7 @@ async def create_empenho(empenho: EmpenhoModel = Body(...)):
     A unique `id` will be created and provided in the response.
     """
     new_empenho = await empenho_collection.insert_one(
-        empenho.model_dump(by_alias=True, exclude=["id"])
+        empenho.model_dump(by_alias=True, exclude={"id"})
     )
     created_empenho = await empenho_collection.find_one(
         {"_id": new_empenho.inserted_id}
@@ -186,7 +186,7 @@ async def create_empenho(empenho: EmpenhoModel = Body(...)):
     response_description="List all empenhos",
     response_model=EmpenhoCollection,
     response_model_by_alias=False,
-    tags=["Empenho"],
+    tags=["Empenhos"],
 )
 async def list_empenhos():
     """
@@ -202,7 +202,7 @@ async def list_empenhos():
     response_description="Get a single empenho",
     response_model=EmpenhoModel,
     response_model_by_alias=False,
-    tags=["Empenho"],
+    tags=["Empenhos"],
 )
 async def show_empenho(id: str):
     """
@@ -221,7 +221,7 @@ async def show_empenho(id: str):
     response_description="Update a empenho",
     response_model=EmpenhoModel,
     response_model_by_alias=False,
-    tags=["Empenho"],
+    tags=["Empenhos"],
 )
 async def update_empenho(id: str, empenho: UpdateEmpenhoModel = Body(...)):
     """
@@ -230,11 +230,11 @@ async def update_empenho(id: str, empenho: UpdateEmpenhoModel = Body(...)):
     Only the provided fields will be updated.
     Any missing or `null` fields will be ignored.
     """
-    empenho = {
+    empenho_dict = {
         k: v for k, v in empenho.model_dump(by_alias=True).items() if v is not None
     }
 
-    if len(empenho) >= 1:
+    if len(empenho_dict) >= 1:
         update_result = await empenho_collection.find_one_and_update(
             {"_id": ObjectId(id)},
             {"$set": empenho},
@@ -252,7 +252,7 @@ async def update_empenho(id: str, empenho: UpdateEmpenhoModel = Body(...)):
     raise HTTPException(status_code=404, detail=f"Empenho {id} not found")
 
 
-@app.delete("/empenhos/{id}", response_description="Delete a empenho",tags=["Empenho"],)
+@app.delete("/empenhos/{id}", response_description="Delete a empenho",tags=["Empenhos"],)
 async def delete_empenho(id: str):
     """
     Remove a single empenho record from the database.
