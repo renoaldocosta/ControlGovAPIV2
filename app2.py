@@ -14,21 +14,21 @@ from pymongo import ReturnDocument
 
 
 app = FastAPI(
-    title="Student Course API",
+    title="Empenho Course API",
     summary="A sample application showing how to use FastAPI to add a ReST API to a MongoDB collection.",
 )
 client = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URL"])
 db = client.get_database("CMP")
-student_collection = db.get_collection("EMPENHOS_DETALHADOS_STAGE")
+empenho_collection = db.get_collection("EMPENHOS_DETALHADOS_STAGE")
 
 # Represents an ObjectId field in the database.
 # It will be represented as a `str` on the model so that it can be serialized to JSON.
 PyObjectId = Annotated[str, BeforeValidator(str)]
 
 
-class StudentModel(BaseModel):
+class EmpenhoModel(BaseModel):
     """
-    Container for a single student record.
+    Container for a single empenho record.
     """
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
     Número: str = Field(...)
@@ -87,7 +87,7 @@ class StudentModel(BaseModel):
         }
 
 
-class UpdateStudentModel(BaseModel):
+class UpdateEmpenhoModel(BaseModel):
     """
     A set of optional updates to be made to a document in the database.
     """
@@ -148,114 +148,118 @@ class UpdateStudentModel(BaseModel):
 
 
 
-class StudentCollection(BaseModel):
+class EmpenhoCollection(BaseModel):
     """
-    A container holding a list of `StudentModel` instances.
+    A container holding a list of `EmpenhoModel` instances.
 
     This exists because providing a top-level array in a JSON response can be a [vulnerability](https://haacked.com/archive/2009/06/25/json-hijacking.aspx/)
     """
 
-    students: List[StudentModel]
+    empenhos: List[EmpenhoModel]
 
 
 @app.post(
-    "/students/",
-    response_description="Add new student",
-    response_model=StudentModel,
+    "/empenhos/",
+    response_description="Add new empenho",
+    response_model=EmpenhoModel,
     status_code=status.HTTP_201_CREATED,
     response_model_by_alias=False,
+    tags=["Empenho"],
 )
-async def create_student(student: StudentModel = Body(...)):
+async def create_empenho(empenho: EmpenhoModel = Body(...)):
     """
-    Insert a new student record.
+    Insert a new empenho record.
 
     A unique `id` will be created and provided in the response.
     """
-    new_student = await student_collection.insert_one(
-        student.model_dump(by_alias=True, exclude=["id"])
+    new_empenho = await empenho_collection.insert_one(
+        empenho.model_dump(by_alias=True, exclude=["id"])
     )
-    created_student = await student_collection.find_one(
-        {"_id": new_student.inserted_id}
+    created_empenho = await empenho_collection.find_one(
+        {"_id": new_empenho.inserted_id}
     )
-    return created_student
+    return created_empenho
 
 
 @app.get(
-    "/students/",
-    response_description="List all students",
-    response_model=StudentCollection,
+    "/empenhos/",
+    response_description="List all empenhos",
+    response_model=EmpenhoCollection,
     response_model_by_alias=False,
+    tags=["Empenho"],
 )
-async def list_students():
+async def list_empenhos():
     """
-    List all of the student data in the database.
+    List all of the empenho data in the database.
 
     The response is unpaginated and limited to 1000 results.
     """
-    return StudentCollection(students=await student_collection.find().to_list(1000))
+    return EmpenhoCollection(empenhos=await empenho_collection.find().to_list(1000))
 
 
 @app.get(
-    "/students/{id}",
-    response_description="Get a single student",
-    response_model=StudentModel,
+    "/empenhos/{id}",
+    response_description="Get a single empenho",
+    response_model=EmpenhoModel,
     response_model_by_alias=False,
+    tags=["Empenho"],
 )
-async def show_student(id: str):
+async def show_empenho(id: str):
     """
-    Get the record for a specific student, looked up by `id`.
+    Get the record for a specific empenho, looked up by `id`.
     """
     if (
-        student := await student_collection.find_one({"_id": ObjectId(id)})
+        empenho := await empenho_collection.find_one({"_id": ObjectId(id)})
     ) is not None:
-        return student
+        return empenho
 
-    raise HTTPException(status_code=404, detail=f"Student {id} not found")
+    raise HTTPException(status_code=404, detail=f"Empenho {id} not found")
 
 
 @app.put(
-    "/students/{id}",
-    response_description="Update a student",
-    response_model=StudentModel,
+    "/empenhos/{id}",
+    response_description="Update a empenho",
+    response_model=EmpenhoModel,
     response_model_by_alias=False,
+    tags=["Empenho"],
 )
-async def update_student(id: str, student: UpdateStudentModel = Body(...)):
+async def update_empenho(id: str, empenho: UpdateEmpenhoModel = Body(...)):
     """
-    Update individual fields of an existing student record.
+    Update individual fields of an existing empenho record.
 
     Only the provided fields will be updated.
     Any missing or `null` fields will be ignored.
     """
-    student = {
-        k: v for k, v in student.model_dump(by_alias=True).items() if v is not None
+    empenho = {
+        k: v for k, v in empenho.model_dump(by_alias=True).items() if v is not None
     }
 
-    if len(student) >= 1:
-        update_result = await student_collection.find_one_and_update(
+    if len(empenho) >= 1:
+        update_result = await empenho_collection.find_one_and_update(
             {"_id": ObjectId(id)},
-            {"$set": student},
+            {"$set": empenho},
             return_document=ReturnDocument.AFTER,
         )
         if update_result is not None:
             return update_result
         else:
-            raise HTTPException(status_code=404, detail=f"Student {id} not found")
+            raise HTTPException(status_code=404, detail=f"Empenho {id} not found")
 
     # The update is empty, but we should still return the matching document:
-    if (existing_student := await student_collection.find_one({"_id": id})) is not None:
-        return existing_student
+    if (existing_empenho := await empenho_collection.find_one({"_id": id})) is not None:
+        return existing_empenho
 
-    raise HTTPException(status_code=404, detail=f"Student {id} not found")
+    raise HTTPException(status_code=404, detail=f"Empenho {id} not found")
 
 
-@app.delete("/students/{id}", response_description="Delete a student")
-async def delete_student(id: str):
+@app.delete("/empenhos/{id}", response_description="Delete a empenho",tags=["Empenho"],)
+async def delete_empenho(id: str):
     """
-    Remove a single student record from the database.
+    Remove a single empenho record from the database.
     """
-    delete_result = await student_collection.delete_one({"_id": ObjectId(id)})
+    delete_result = await empenho_collection.delete_one({"_id": ObjectId(id)})
 
     if delete_result.deleted_count == 1:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-    raise HTTPException(status_code=404, detail=f"Student {id} not found")
+    raise HTTPException(status_code=404, detail=f"empenho {id} not found")
